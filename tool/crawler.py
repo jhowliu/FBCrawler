@@ -25,7 +25,7 @@ class Crawler:
             try:
                 self.all_posts.append({'msg':post['message'], 'time':post['created_time'], 'id':post['id'], 'link':post['link']})
             except KeyError:
-                self.all_posts.append({'time':post['created_time'], 'id':post['id']})
+                pass
 
     def save(self, filename):
         out = open(filename, 'w')
