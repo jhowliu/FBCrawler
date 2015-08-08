@@ -9,7 +9,7 @@ import sys
 class Crawler:
     '''
     all_posts: Json object
-    args: Some parameters of facebook page. for example: {'fields': 'like, message'}
+    args: Some parameters of graphAPI. for example: {'fields': 'like, message'}
     '''
 
     def __init__(self, token, page_id):
@@ -39,23 +39,47 @@ class Crawler:
         # return the next page id
         return parser.get_nextpage_id(posts['paging']['next'])
 
+    def get_all_comments(self, args={'fields': 'like_count, from, message, id, created_time', 'limit':500, 'after':''}):
+        for post in self.all_posts:
+            print post['id']
+            comment_list = []
+            while True:
+                try:
+                    comments = self.graph.get_object(post['id'] + '/comments', **args)
+                except:
+                    print "Time to delay. (5 Mins)"
+                    time.sleep(self.delay)
+                    comments = self.graph.get_object(post['id'] + '/comments', **args)
+
+                for comment in comments['data']:
+                    comment_list.append({"commend_id":comment['id'], "like_count":comment['like_count'], "Author":{"uid":comment['from']['id'], "uname":comment['from']['name'], "msg":comment['message'], "time":comment['created_time']} })
+
+                try:
+                    args['after'] = comments['paging']['cursors']['after']
+                except KeyError:
+                    print "Number of comments: %d" % len(comment_list)
+                    post['comments'] = comment_list
+                    args['after'] = ''
+                    break
+
+
     def get_like_counts(self, args={'limit':10000, 'after':''}):
         for post in self.all_posts:
-            like_count = 0
             print post['id']
-
+            like_count = 0
             while True:
                 try:
                     likes = self.graph.get_object(post['id'] + '/likes', **args)
-                    like_count = like_count + len(likes['data'])
                 except:
                     print "Time to delay. (5 Mins)"
                     time.sleep(self.delay)
                     likes = self.graph.get_object(post['id'] + '/likes', **args)
+
+                like_count = like_count + len(likes['data'])
                 # get the id of next page
                 try:
                     args['after'] = likes['paging']['cursors']['after']
-                except:
+                except KeyError:
                     print "Like count: %d" % like_count
                     post['like_count'] = like_count
                     args['after'] = ''
